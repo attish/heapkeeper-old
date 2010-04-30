@@ -26,6 +26,7 @@ import re
 import hklib
 import hkgen
 import hkshell
+import hkutils
 
 import issue_tracker
 
@@ -37,8 +38,149 @@ def main():
 def gen_indices(postdb):
     g = MyGenerator(postdb)
     g.write_all()
-    g = issue_tracker.Generator(postdb)
+    g = AttisIssueTracker(postdb)
     g.write_all()
+
+class AttisIssueTracker(issue_tracker.Generator):
+    def write_all(self):
+        self.calc()
+        self.write_issues_attis_page()
+
+    def write_issues_attis_page(self):
+        hkutils.log('Generating issues_attis.html...')
+        self.options.html_title = "Attis's issues"
+        self.write_page(
+             'index/issues_attis.html',
+             self.print_issues_attis_page())
+
+    def print_issues_attis_page(self):
+        return \
+            (self.section(
+                'open',
+                'Open issues',
+                self.enclose_issue_posts(self.open_section),
+                flat=True))
+
+    def enclose_issue_posts_core(self, posts):
+        xpostitems = []
+        roots = self.issue_roots(posts)
+        for post in roots:
+            xpostitems.append(hklib.PostItem(pos='flat', post=post, level=0))
+        xpostitems = self.reverse_threads(xpostitems)
+        return self.walk_postitems(xpostitems)
+
+    def issue_roots(self, posts):
+        uniq_list = list(set([self._postdb.root(p) for p in posts]))
+        uniq_list.sort()
+        return uniq_list
+
+    def get_postsummary_fields_flat(self, postitem):
+        return (
+            self.print_postitem_open,
+            self.print_postitem_subject,
+            self.print_postitem_type,
+            self.print_postitem_tags,
+            self.print_postitem_post_id,
+            self.make_print_postitem_for_meta('priority'),
+            self.make_print_postitem_for_meta('assign'),
+            self.make_print_postitem_for_meta('effort'),
+            self.print_postitem_date,
+        )
+
+    def separate_type_and_tags(self, tagset):
+        """Separates tags describing type and topic.
+
+        **Argument:**
+
+        - `tagset` ([str])
+
+        **Returns:** ((str), (str))
+        """
+
+        type = []
+
+        def separate(tag):
+            if tag in tagset:
+                tagset.remove(tag)
+                type.append(tag)
+        def eliminate(tag):
+            if tag in tagset:
+                tagset.remove(tag)
+        separate('prop')
+        separate('issue')
+        separate('feature')
+        separate('bug')
+        eliminate('reviewed')
+        eliminate('open')
+        eliminate('OPEN')
+        eliminate('closed')
+        eliminate('CLOSED')
+        return (type, tagset)
+
+    def print_postitem_open(self, postitem):
+        post = postitem.post
+        if self.is_thread_open(post):
+            open = 'OPEN'
+        else:
+            open = ''
+        return self.enclose(
+                   open,
+                   class_='open',
+                   skip_empty=True)
+
+    def print_postitem_type(self, postitem):
+        return self.enclose(
+                   self.print_postitem_type_core(postitem),
+                   class_='type',
+                   skip_empty=True)
+
+    def print_postitem_type_core(self, postitem):
+        post = postitem.post
+        post_tags = set(post.tags())
+        type,_ = self.separate_type_and_tags(post_tags)
+
+        if len(type) == 0:
+            return ''
+        else:
+            return '[%s]' % (', '.join(type),)
+
+    def print_postitem_tags(self, postitem):
+        return self.enclose(
+                   self.print_postitem_tags_core(postitem),
+                   class_='type',
+                   skip_empty=True)
+
+    def print_postitem_tags_core(self, postitem):
+        post = postitem.post
+        post_tags = set(post.tags())
+        _,tags = self.separate_type_and_tags(post_tags)
+
+        if len(tags) == 0:
+            return ''
+        else:
+            return '[%s]' % (', '.join(tags),)
+
+    def make_print_postitem_for_meta(self, meta):
+        """This is a factory that manufactures a function to get the union
+        of values for a given meta in a thread."""
+
+        def print_postitem_meta(postitem):
+            values = self.get_thread_meta(postitem.post, meta)
+            return self.enclose(
+                       ', '.join(values),
+                       class_=meta,
+                       skip_empty=True)
+        return print_postitem_meta
+
+    def get_thread_meta(self, root, meta):
+        values = []
+        thread = hklib.PostSet(self._postdb, root).expf()
+        for p in thread:
+            meta_dict = p.meta_dict()
+            if meta_dict.has_key(meta):
+                values.append(meta_dict[meta])
+        return values
+        
 
 class MyGenerator(hkgen.Generator):
 
