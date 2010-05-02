@@ -61,18 +61,17 @@ class AttisIssueTracker(issue_tracker.Generator):
                 self.enclose_issue_posts(self.open_section),
                 flat=True))
 
-    def enclose_issue_posts_core(self, posts):
-        xpostitems = []
-        roots = self.issue_roots(posts)
-        for post in roots:
-            xpostitems.append(hklib.PostItem(pos='flat', post=post, level=0))
-        xpostitems = self.reverse_threads(xpostitems)
-        return self.walk_postitems(xpostitems)
-
     def issue_roots(self, posts):
         uniq_list = list(set([self._postdb.root(p) for p in posts]))
         uniq_list.sort()
         return uniq_list
+
+    def enclose_issue_posts_core(self, posts):
+        return \
+           self.reverse_threads(
+               [self.augment_postitem(
+                    hklib.PostItem(pos='flat', post=post))
+               for post in self.issue_roots(posts)])
 
     def get_postsummary_fields_flat(self, postitem):
         return (
@@ -106,31 +105,28 @@ class AttisIssueTracker(issue_tracker.Generator):
         def eliminate(tag):
             if tag in tagset:
                 tagset.remove(tag)
-        separate('prop')
-        separate('issue')
-        separate('feature')
-        separate('bug')
-        eliminate('reviewed')
-        eliminate('open')
-        eliminate('OPEN')
-        eliminate('closed')
-        eliminate('CLOSED')
+        for tag in ('prop', 'issue', 'feature', 'bug'):
+            separate(tag)
+        for tag in ('reviewed', 'open', 'OPEN', 'closed', 'CLOSED'):
+            eliminate(tag)
         return (type, tagset)
 
     def print_postitem_open(self, postitem):
-        post = postitem.post
-        if self.is_thread_open(post):
-            open = 'OPEN'
-        else:
-            open = ''
+        open_msg = 'OPEN' if self.is_thread_open(postitem.post) else ''
         return self.enclose(
-                   open,
+                   open_msg,
                    class_='open',
                    skip_empty=True)
 
     def print_postitem_type(self, postitem):
         return self.enclose(
                    self.print_postitem_type_core(postitem),
+                   class_='type',
+                   skip_empty=True)
+
+    def print_postitem_tags(self, postitem):
+        return self.enclose(
+                   self.print_postitem_tags_core(postitem),
                    class_='type',
                    skip_empty=True)
 
@@ -143,12 +139,6 @@ class AttisIssueTracker(issue_tracker.Generator):
             return ''
         else:
             return '[%s]' % (', '.join(type),)
-
-    def print_postitem_tags(self, postitem):
-        return self.enclose(
-                   self.print_postitem_tags_core(postitem),
-                   class_='type',
-                   skip_empty=True)
 
     def print_postitem_tags_core(self, postitem):
         post = postitem.post
