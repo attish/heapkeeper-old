@@ -42,6 +42,29 @@ def gen_indices(postdb):
     g.write_all()
 
 class AttisIssueTracker(issue_tracker.Generator):
+
+    def section(self, id, title, content, flat=False):
+        assert hkutils.is_textstruct(content), \
+               'Parameter is not a valid text structure:\n%s\n' % (content,)
+
+        if flat:
+            raw_headers = ('Open?', 'Description', 'Type', 'Tags', 'ID',
+                           '', '', '', 'Date')
+            header = [self.enclose(h, 'th', id='th_%d' % (n,), newlines=True)
+                      for n,h in enumerate(raw_headers)]
+            content_theader = self.enclose(header,
+                                           'theader',
+                                           'flatlist',
+                                           newlines=True)
+            content_tbody = \
+                self.enclose(content, 'tbody', 'flatlist', newlines=True)
+            content_all = (content_theader, content_tbody)
+            content = \
+                self.enclose(content_all, 'table', 'flatlist', newlines=True)
+        return (self.section_begin('section_%s' % (id,), title),
+                content,
+                self.section_end())
+
     def write_all(self):
         self.calc()
         self.write_issues_attis_page()
@@ -74,7 +97,14 @@ class AttisIssueTracker(issue_tracker.Generator):
                for post in self.issue_roots(posts)])
 
     def get_postsummary_fields_flat(self, postitem):
-        return (
+
+        def make_enclosed(fun, *args, **kwargs):
+            def enclosed(postitem):
+                res = fun(postitem)
+                return self.enclose(res, *args, **kwargs)
+            return enclosed
+
+        fields = (
             self.print_postitem_open,
             self.print_postitem_subject,
             self.print_postitem_type,
@@ -85,6 +115,8 @@ class AttisIssueTracker(issue_tracker.Generator):
             self.make_print_postitem_for_meta('effort'),
             self.print_postitem_date,
         )
+        return [make_enclosed(field, 'div', class_='field_%d' % (n,))
+                for n, field in enumerate(fields)]
 
     def separate_type_and_tags(self, tagset):
         """Separates tags describing type and topic.
