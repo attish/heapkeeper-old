@@ -477,7 +477,7 @@ function bindNewPost(newPostSummary, postId, count)
     );
 }
 
-function addChildPost(postId) {
+function addChildPost(postId, split) {
     // Add a child to an existing post.
     //
     // The post doesn't exist on the Heap until it is saved (this is
@@ -499,11 +499,32 @@ function addChildPost(postId) {
     // `postId` and `count` will identify the new post. 
     var count = findAvailableNewName(postId);
 
+    // If we split, add table.
+    if (split) {
+        var table_id = 'new-' + count + '-split-table-' + postId;
+        var left_id = 'new-' + count + '-split-cell-left-' + postId;
+        var right_id = 'new-' + count + '-split-cell-right-' + postId;
+        var table =
+            '<table id="' + table_id + '" border="1" cellspacing="0"><tr>' +
+            '<td id="' + left_id + '" width="50%"></td>' +
+            '<td id="' + right_id + '" width="50%"></td>' +
+            '</tr></table>';
+        parentPostSummary.before(table);       
+        parentPostSummary.detach();
+        $('#' + left_id).append(parentPostSummary);
+        // Also, if split, also edit parent.
+        editPost(postId, 'raw');
+        editPostStarted(postId);
+    }
+
     // Add new post box.
     var newPostBoxID = 'new-' + count + '-post-box-' + postId;
     var newPostBoxHTML = '<div class="post-box" id="' +
-        newPostBoxID + '"></div>';
-    beforePostBox.after(newPostBoxHTML);
+                         newPostBoxID + '"></div>';
+    if (!split)
+        beforePostBox.after(newPostBoxHTML);
+    else
+        $('#' + right_id).append(newPostBoxHTML);
     var newPostBox = $('#' + newPostBoxID);
 
     // Clone post summary and add to new post box.
@@ -754,8 +775,9 @@ function addEventHandlersToPostSummary(postId) {
         editPost(postId, 'raw');
     });
 
-    $('#post-body-addchild-button-' + postId).bind('click', function() {
-        addChildPost(postId);
+    $('#post-body-addchild-button-' + postId).bind('click', function(e) {
+        // With the Shift key, splits post
+        addChildPost(postId, e.shiftKey);
     });
 
     $('#post-body-save-button-' + postId).bind('click', function() {
