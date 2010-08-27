@@ -22,6 +22,7 @@
 
 
 import re
+from web.wsgiserver import CherryPyWSGIServer
 
 import hklib
 import hkgen
@@ -35,6 +36,11 @@ def main():
     #hkshell.options.callbacks.gen_posts = gen_posts
     hkshell.options.save_on_ctrl_d = False
     hkshell.on('save')
+
+    # Enable SSL
+    #CherryPyWSGIServer.ssl_certificate = "/etc/ssl/hk.crt"
+    #CherryPyWSGIServer.ssl_private_key = "/etc/ssl/hk.key"
+
     web = hkweb.start()
 
 def gen_indices(postdb):
