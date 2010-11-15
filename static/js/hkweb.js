@@ -321,10 +321,9 @@ function setPostContentRequest(postId, newPostText, mode, callback, count) {
             callback);
     } else if (mode == 'new') {
         ajaxQuery(
-            "/set-post-body",
+            "/new-post",
             {'post_id': postIdToPostIdStr(postId),
-             'new_body_text': newPostText,
-             'new': 1},
+             'new_body_text': newPostText},
             callback);
     }
 }
