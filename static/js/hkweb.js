@@ -325,6 +325,12 @@ function setPostContentRequest(postId, newPostText, mode, callback, count) {
             {'post_id': postIdToPostIdStr(postId),
              'new_body_text': newPostText},
             callback);
+    } else if (mode == 'newroot') {
+        ajaxQuery(
+            "/add-new-root",
+            {'heap_id': postId,
+             'new_body_text': newPostText},
+            callback);
     }
 }
 
@@ -642,6 +648,33 @@ function savePostNew(postId, count) {
 
         // TODO is this needed?
         //editPostFinished(newPostId);
+     });
+}
+
+function savePostNewRoot(heapId) {
+    // Saves the contents of the new post's textarea as a new root.
+    //
+    // Upon completion, the browser is redirected to this new root.
+    //
+    // Arguments:
+    //
+    // - heapId (HeapId)
+
+    var postBodyContainer = $('#new-root-post-body-container-new-root')
+    var textArea = $('textarea', postBodyContainer);
+    var newPostText = textArea.val();
+    var mode = 'newroot'
+
+    setPostContentRequest(heapId, newPostText, mode, function(result) {
+
+        if (result.error) {
+            window.alert('Error occured:\n' + result.error);
+            return;
+        }
+
+        // TODO redirect to new thread
+        var newPostId = result.new_post_id;
+        window.location = '/posts/' + newPostId;
      });
 }
 

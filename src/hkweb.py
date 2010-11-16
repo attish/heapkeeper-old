@@ -77,6 +77,8 @@ urls = [
     r'/save.*', 'Save',
     r'/set-post-body', 'SetPostBody',
     r'/new-post', 'NewPost',
+    r'/new-root/(.*)', 'NewRoot',
+    r'/add-new-root', 'AddNewRoot',
     r'/get-post-body', 'GetPostBody',
     r'/set-raw-post', 'SetRawPost',
     r'/show-json', 'ShowJSon',
@@ -663,6 +665,58 @@ class PostPageGenerator(WebGenerator):
                 self.print_js_links())
 
 
+class NewRootGenerator(PostPageGenerator):
+
+    def __init__(self, postdb):
+        PostPageGenerator.__init__(self, postdb)
+        self.options.html_title = 'Add new root'
+
+    def print_post_page(self, heap_id):
+        """Prints the search page.
+
+        **Returns:** |HtmlText|
+        """
+
+        new_root = """
+<div class="post-box" id="new-root-post-box-new-root">
+  <div class="post-summary" id="new-root-post-summary-new-root">
+    <div class="post-body-container"
+         id="new-root-post-body-container-new-root">
+      <div class="post-body-buttons">
+        <span class="button post-body-button"
+              id="new-root-post-body-save-button-new-root" style="">
+          Save
+        </span>
+      </div>
+      <textarea id="new-root-post-body-textarea-new-root" rows="10" cols="80"
+                class="post-body-content"></textarea>
+    </div>
+  </div>
+</div>"""
+
+        heapid_js = """
+<script type="text/javascript" language="JavaScript">
+    var heap_id = "%s";
+</script>"""
+
+        return (new_root,
+                heapid_js % heap_id)
+
+    def print_js_links(self):
+        original_js_links = PostPageGenerator.print_js_links(self)
+
+        binding_js = """
+<script type="text/javascript" language="JavaScript">
+    $('#new-root-post-body-save-button-new-root').bind(
+        'click',
+        function() { savePostNewRoot(heap_id); }
+    );
+</script>"""
+
+        return (original_js_links,
+                binding_js)
+
+
 class SearchPageGenerator(PostPageGenerator):
 
     """Generator that implements a search page."""
@@ -856,6 +910,21 @@ class Post(HkPageServer):
         post_id = hkutils.uutf8(name)
         generator = PostPageGenerator(self._postdb)
         content = generator.print_main(post_id)
+        return self.serve_html(content, generator)
+
+
+class NewRoot(HkPageServer):
+    """Serves the post pages.
+
+    Served URL: ``/new-root/<heap>``"""
+
+    def __init__(self):
+        HkPageServer.__init__(self)
+
+    def GET(self, name):
+        heap_id = hkutils.uutf8(name)
+        generator = NewRootGenerator(self._postdb)
+        content = generator.print_main(heap_id)
         return self.serve_html(content, generator)
 
 
@@ -1268,6 +1337,50 @@ class Save(AjaxServer):
 
         # All OK -- return empty structure.
         return {}
+
+class AddNewRoot(AjaxServer):
+    """Adds a new post as a new root
+
+    Served URL: ``/add-new-root``
+    """
+
+    def __init__(self):
+        """Constructor."""
+        AjaxServer.__init__(self)
+
+    def execute(self, args):
+        """Adds new root.
+
+        **Argument:**
+
+        - `args` ({'heap_id': |HeapId|, 'new_body_text': str)
+
+        **Returns:** {'error': str} | {'new_body_html': str}
+        """
+
+        postdb = self._postdb
+
+        heap_id = args.get('heap_id')
+
+        if heap_id not in hkshell.postdb().heap_ids():
+            return {'error': 'No such heap: "%s"' % (heap_id,)}
+
+        newPostBodyText = args.get('new_body_text')
+        if newPostBodyText is None:
+            return {'error': 'No post body specified'}
+
+        # enew
+        post = hklib.Post.from_str(newPostBodyText)
+        prefix = 'hkweb_'
+        hkshell.add_post_to_heap(post, prefix, heap_id)
+        post_id = post.post_id()
+
+        # Generating the HTML for the new body or new post summary.
+        generator = PostBodyGenerator(self._postdb)
+        new_body_html = generator.print_post_body(post_id)
+        new_body_html = hkutils.textstruct_to_str(new_body_html)
+        return {'new_body_html': new_body_html,
+                'new_post_id': post.post_id_str()}
 
 
 class GetPostBody(AjaxServer):
