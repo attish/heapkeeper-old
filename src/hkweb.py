@@ -688,8 +688,10 @@ class NewRootGenerator(PostPageGenerator):
           Save
         </span>
       </div>
-      <textarea id="new-root-post-body-textarea-new-root" rows="10" cols="80"
-                class="post-body-content"></textarea>
+      <textarea id="new-root-post-body-textarea-new-root" rows="10"
+                cols="80" class="post-body-content">
+                    Author: \nSubject: \n\nInsert text here.
+      </textarea>
     </div>
   </div>
 </div>"""
