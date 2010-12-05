@@ -1369,8 +1369,14 @@ class AddNewRoot(AjaxServer):
         if newPostBodyText is None:
             return {'error': 'No post body specified'}
 
-        # enew
-        post = hklib.Post.from_str(newPostBodyText)
+        # Attempt to create new post. Any error here is the user's
+        # fault -- i.e. xe submitted a non-well-formed raw post, so
+        # the exception message is sent back to the client.
+        try:
+            post = hklib.Post.from_str(newPostBodyText)
+        except hkutils.HkException, e:
+            return {'error': str(e)}
+
         prefix = 'hkweb_'
         hkshell.add_post_to_heap(post, prefix, heap_id)
         post_id = post.post_id()
