@@ -295,14 +295,23 @@ function getRawPostRequest(postId, mode, callback) {
     }
 }
 
-function setPostContentRequest(postId, newPostText, mode, callback, count) {
-    // Sets the body of the given post in a raw format.
+function setPostContentRequest(id, newPostText, mode, callback, count) {
+    // Changes or creates a post.
+    //
+    // Depending on the value of the `mode` parameter, this function either:
+    // - changes the body of an existing post,
+    // - changes the whole text of an existing post,
+    // - creates a new post as a child to an existing post,
+    // - creates a new post as a new root of a heap.
+    // Changes either the body or the whole text of an existing post
+    // Sets the body of the given post in a raw format or create new root.
     //
     // Arguments:
     //
-    // - postId (PostId)
+    // - id (PostId|HeapId) -- The PostID of the post to be changed or used as
+    //   a parent, or the HeapId of the heap to add a new root to.
     // - newPostText(str)
-    // - mode(str) -- 'body', 'raw' or 'new'.
+    // - mode(str) -- 'body', 'raw', 'new' or 'newroot'.
     // - callback (fun(result)) -- Function to be called after we set the post
     //   body. `result` is the information returned by the server.
     // - count(int) -- Number of new post to save, if it is new.
@@ -310,25 +319,25 @@ function setPostContentRequest(postId, newPostText, mode, callback, count) {
     if (mode == 'body') {
         ajaxQuery(
             "/set-post-body",
-            {'post_id': postIdToPostIdStr(postId),
+            {'post_id': postIdToPostIdStr(id),
              'new_body_text': newPostText},
             callback);
     } else if (mode == 'raw') {
         ajaxQuery(
             "/set-raw-post",
-            {'post_id': postIdToPostIdStr(postId),
+            {'post_id': postIdToPostIdStr(id),
              'new_post_text': newPostText},
             callback);
     } else if (mode == 'new') {
         ajaxQuery(
             "/new-post",
-            {'post_id': postIdToPostIdStr(postId),
+            {'post_id': postIdToPostIdStr(id),
              'new_body_text': newPostText},
             callback);
     } else if (mode == 'newroot') {
         ajaxQuery(
             "/add-new-root",
-            {'heap_id': postId,
+            {'heap_id': id,
              'new_body_text': newPostText},
             callback);
     }
@@ -651,19 +660,21 @@ function savePostNew(postId, count) {
      });
 }
 
-function savePostNewRoot(heapId) {
+function savePostNewRoot() {
     // Saves the contents of the new post's textarea as a new root.
     //
     // Upon completion, the browser is redirected to this new root.
+    // The target heap is taken from the value of the selector input
+    // field.
     //
-    // Arguments:
-    //
-    // - heapId (HeapId)
+    // This function takes no parameters as all necessary information (the
+    // target heap and the post text) is taken from the form itself.
 
     var postBodyContainer = $('#new-root-post-body-container-new-root')
     var textArea = $('textarea', postBodyContainer);
     var newPostText = textArea.val();
     var mode = 'newroot'
+    var heapId = $('#heapselector').val()
 
     setPostContentRequest(heapId, newPostText, mode, function(result) {
 
@@ -672,7 +683,6 @@ function savePostNewRoot(heapId) {
             return;
         }
 
-        // TODO redirect to new thread
         var newPostId = result.new_post_id;
         window.location = '/posts/' + newPostId;
      });

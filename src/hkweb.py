@@ -73,6 +73,7 @@ urls = [
     r'/raw-post-text/(.*)', 'RawPostText',
     r'/set-post-body', 'SetPostBody',
     r'/new-post', 'NewPost',
+    r'/new-root', 'NewRoot',
     r'/new-root/(.*)', 'NewRoot',
     r'/add-new-root', 'AddNewRoot',
     r'/get-post-body', 'GetPostBody',
@@ -642,10 +643,30 @@ class NewRootGenerator(PostPageGenerator):
         self.options.html_title = 'Add new root'
 
     def print_post_page(self, heap_id):
-        """Prints the search page.
+        """Prints the page used to create a new root.
+
+        This page features:
+        - a drop-down box to select the heap; this defaults to the heap named
+          in an optional part of the URL,
+        - the input box where the user composes the post; this appears
+          containing a template, to help the user create a well-formed post.
 
         **Returns:** |HtmlText|
         """
+
+        # `heap_selector` is where the list where the drop-down control will be
+        # assembled. This is then joined into `heap_selector_str`.
+        heap_selector = ['<div class="global-buttons">Add new root to:',
+                         '<select id="heapselector">']
+        heaps = hkshell.postdb()._heaps.keys()
+        for heap in heaps:
+            selected = ' selected="selected"' if heap == heap_id else ''
+            option = '<option%s>%s</option>'
+            heap_selector.append(option % (selected, heap))
+        heap_selector.append('</select>')
+        heap_selector.append('</p>')
+
+        heap_selector_str = '\n'.join(heap_selector)
 
         new_root = """
 <div class="post-box" id="new-root-post-box-new-root">
@@ -660,19 +681,13 @@ class NewRootGenerator(PostPageGenerator):
       </div>
       <textarea id="new-root-post-body-textarea-new-root" rows="10"
                 cols="80" class="post-body-content">
-                    Author: \nSubject: \n\nInsert text here.
-      </textarea>
+Author: \nSubject: \n\nInsert text here.</textarea>
     </div>
   </div>
 </div>"""
 
-        heapid_js = """
-<script type="text/javascript" language="JavaScript">
-    var heap_id = "%s";
-</script>"""
-
-        return (new_root,
-                heapid_js % heap_id)
+        return (heap_selector_str,
+                new_root)
 
     def print_js_links(self):
         original_js_links = PostPageGenerator.print_js_links(self)
@@ -681,7 +696,7 @@ class NewRootGenerator(PostPageGenerator):
 <script type="text/javascript" language="JavaScript">
     $('#new-root-post-body-save-button-new-root').bind(
         'click',
-        function() { savePostNewRoot(heap_id); }
+        function() { savePostNewRoot(); }
     );
 </script>"""
 
@@ -887,15 +902,24 @@ class Post(HkPageServer):
 
 
 class NewRoot(HkPageServer):
-    """Serves the post pages.
+    """Serves the page where the user can add a new root.
 
-    Served URL: ``/new-root/<heap>``"""
+    The URL contains an optional part that specifies the target heap. If it is
+    supplied, the drop-down box defaults to that heap; this exists as a
+    convenience to those users who rather type than click. Of course, they can
+    always change their minds later via the drop-down selector.
+
+    Served URL: ``/new-root[/<heap>]``
+    """
 
     def __init__(self):
         HkPageServer.__init__(self)
 
-    def GET(self, name):
-        heap_id = hkutils.uutf8(name)
+    def GET(self, name=None):
+        if name is not None:
+            heap_id = hkutils.uutf8(name)
+        else:
+            heap_id = None
         generator = NewRootGenerator(self._postdb)
         content = generator.print_main(heap_id)
         return self.serve_html(content, generator)
@@ -1235,7 +1259,6 @@ class NewPost(AjaxServer):
         **Returns:** {'error': str} | {'new_body_html': str} |
         {'new_post_summary': str, 'new_post_id': str}
         """
-
         postdb = self._postdb
 
         post_id = args.get('post_id')
@@ -1276,7 +1299,7 @@ class NewPost(AjaxServer):
 
 
 class AddNewRoot(AjaxServer):
-    """Adds a new post as a new root
+    """Adds a new post as a new root.
 
     Served URL: ``/add-new-root``
     """
@@ -1294,7 +1317,6 @@ class AddNewRoot(AjaxServer):
 
         **Returns:** {'error': str} | {'new_body_html': str}
         """
-
         postdb = self._postdb
 
         heap_id = args.get('heap_id')
@@ -1305,6 +1327,7 @@ class AddNewRoot(AjaxServer):
         newPostBodyText = args.get('new_body_text')
         if newPostBodyText is None:
             return {'error': 'No post body specified'}
+
 
         # Attempt to create new post. Any error here is the user's
         # fault -- i.e. xe submitted a non-well-formed raw post, so
