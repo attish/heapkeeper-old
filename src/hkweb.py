@@ -441,6 +441,19 @@ class IndexGenerator(WebGenerator):
             ]
         return "\n".join(save_link)
 
+    def print_add_root_link(self):
+        """Prints a link to add a new root to an existing heap."""
+
+        add_root_link = \
+            [
+                "<div class='global-buttons'>",
+                "   <span class='button global-button'>",
+                "       <a href='new-root'>Add new root</a>",
+                "   </span>",
+                "</div>"
+            ]
+        return "\n".join(add_root_link)
+
     def print_main(self):
         """Prints the main part of the page.
 
@@ -450,6 +463,7 @@ class IndexGenerator(WebGenerator):
         return (self.print_searchbar(),
                 self.print_additional_header({}),
                 self.print_save_button(),
+                self.print_add_root_link(),
                 self.print_main_index_page(),
                 self.print_additional_footer({}),
                 self.print_js_links())
