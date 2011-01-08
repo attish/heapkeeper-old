@@ -295,7 +295,7 @@ function getRawPostRequest(postId, mode, callback) {
     }
 }
 
-function setPostContentRequest(id, newPostText, mode, callback, count) {
+function setPostContentRequest(id, newPostText, mode, callback) {
     // Changes or creates a post.
     //
     // Depending on the value of the `mode` parameter, this function either:
@@ -314,7 +314,6 @@ function setPostContentRequest(id, newPostText, mode, callback, count) {
     // - mode(str) -- 'body', 'raw', 'new' or 'newroot'.
     // - callback (fun(result)) -- Function to be called after we set the post
     //   body. `result` is the information returned by the server.
-    // - count(int) -- Number of new post to save, if it is new.
 
     if (mode == 'body') {
         ajaxQuery(
