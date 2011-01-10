@@ -82,6 +82,7 @@ urls = [
     r'/add-new-root', 'AddNewRoot',
     r'/get-post-body', 'GetPostBody',
     r'/set-raw-post', 'SetRawPost',
+    r'/delete-post', 'DeletePost',
     r'/show-json', 'ShowJSon',
     r'/search.*', 'Search',
     ]
@@ -651,7 +652,11 @@ class PostPageGenerator(WebGenerator):
                      'Cancel',
                      class_='button post-body-button',
                      id='post-body-cancel-button-' + post_id,
-                     attributes='style="display: none;"'), '\n'),
+                     attributes='style="display: none;"'), '\n',
+                 self.enclose(
+                     'Delete',
+                     class_='button post-body-button',
+                     id='post-body-delete-button-' + post_id), '\n'),
                 class_='post-body-buttons',
                 tag='div',
                 newlines=True)
@@ -1521,6 +1526,43 @@ class SetRawPost(AjaxServer):
 
         return {'new_post_summary': new_post_summary,
                 'major_change': major_change}
+
+
+class DeletePost(AjaxServer):
+
+    """Deletes the given post.
+
+    Served URL: ``/delete-post``
+    """
+
+    def __init__(self):
+        """Constructor."""
+        AjaxServer.__init__(self)
+
+    def execute(self, args):
+        """Deletes the given post.
+
+        **Argument:**
+
+        - `args` ({'post_id': |PrePostId|})
+
+        **Returns:** {'error': str}
+        """
+
+        post_id = args.get('post_id')
+        post = self._postdb.post(post_id)
+        if post is None:
+            return {'error': 'No such post: "%s"' % (post_id,)}
+
+        # Catch "Exception" # pylint: disable=W0703
+        try:
+            hkshell.d(post_id)
+        except Exception, e:
+            return {'error':
+                    'Exception was raised while deleting the post:\n' + str(e)}
+
+        hkutils.log('Post deleted.')
+        return
 
 
 class Fetch(object):

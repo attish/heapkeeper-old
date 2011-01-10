@@ -375,6 +375,7 @@ function editPostStarted(postId, count) {
     setButtonVisibility($(prefix + 'body-addchild-button-' + postId), 'hide');
     setButtonVisibility($(prefix + 'body-save-button-' + postId), 'show');
     setButtonVisibility($(prefix + 'body-cancel-button-' + postId), 'show');
+    setButtonVisibility($(prefix + 'body-delete-button-' + postId), 'hide');
 
     var textArea = $('textarea', postBodyContainer);
 
@@ -397,6 +398,7 @@ function editPostFinished(postId) {
     setButtonVisibility($('#post-body-addchild-button-' + postId), 'show');
     setButtonVisibility($('#post-body-save-button-' + postId), 'hide');
     setButtonVisibility($('#post-body-cancel-button-' + postId), 'hide');
+    setButtonVisibility($('#post-body-delete-button-' + postId), 'show');
 
     delete editState[postId];
 }
@@ -532,6 +534,7 @@ function addChildPost(postId) {
     renameToNew(newPostSummary, 'body-addchild-button', postId, count);
     renameToNew(newPostSummary, 'body-save-button', postId, count);
     renameToNew(newPostSummary, 'body-cancel-button', postId, count);
+    renameToNew(newPostSummary, 'body-delete-button', postId, count);
 
     // Switch clone into edit mode.
     var newPostBodyContainer = newPostSummary.find('.post-body-container');
@@ -710,6 +713,33 @@ function saveHeaps() {
     );
 }
 
+function deletePost(postId) {
+    // Lets the user delete a post.
+    //
+    // Since deleting the post makes all its children root posts, the
+    // post-body-content box is removed altogether.
+    //
+    // Argument:
+    //
+    // - postId (PostId)
+
+    if (!confirm('Are you sure?')) return;
+
+    ajaxQuery(
+        "/delete-post",
+        {'post_id': postIdToPostIdStr(postId)},
+        function(result) {
+            if (result.error) {
+                window.alert('Error occured:\n' + result.error);
+                return;
+            }
+        }
+    );
+
+    var postSummary = $('#post-summary-' + postId);
+    postSummary.parent().remove();
+}
+
 function confirmExit() {
     // Asks confirmation before leaving the page if there are any post being
     // edited.
@@ -819,6 +849,9 @@ function addEventHandlersToPostSummary(postId) {
 
     $('#post-body-cancel-button-' + postId).bind('click', function() {
         cancelEditPost(postId);
+    });
+    $('#post-body-delete-button-' + postId).bind('click', function() {
+        deletePost(postId);
     });
 }
 
