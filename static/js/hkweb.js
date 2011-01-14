@@ -738,6 +738,11 @@ function deletePost(postId) {
 
     var postSummary = $('#post-summary-' + postId);
     postSummary.parent().remove();
+
+    // If root is deleted, redirect browser to index.
+    if (($('.post-box').length == 0)) {
+        window.location.pathname = '';
+    }
 }
 
 function confirmExit() {
