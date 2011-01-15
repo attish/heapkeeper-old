@@ -1028,7 +1028,8 @@ class BaseGenerator(object):
     # Printing and walking several post items
 
     # TODO: test
-    def walk_thread(self, root=None, threadstruct=None):
+    def walk_thread(self, root=None, threadstruct=None,
+                    range_begin=None, range_end=None):
         """Walks the given thread.
 
         **Argument:**
@@ -1038,11 +1039,17 @@ class BaseGenerator(object):
         - `threadstruct` ({(``None`` | |PostId|): |PostId|} | ``None``) -- The
           thread structure to be used. If ``None``, the thread structure of the
           post database will be used.
+        - `range_begin` (int) -- Number of first root to include.
+        - `range_end` (int) -- Number of last root to include. If None,
+          all roots are included.
 
         **Returns:** iterable(|PostItem|)
         """
 
-        return self._postdb.walk_thread(root, threadstruct, yield_inner=True)
+        return self._postdb.walk_thread(root, threadstruct,
+                                        yield_inner=True,
+                                        range_begin=range_begin,
+                                        range_end=range_end)
 
     # TODO test
     def walk_exp_posts(self, posts):

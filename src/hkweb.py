@@ -67,6 +67,7 @@ import hkshell
 # Stores which URL is served by which server
 urls = [
     r'/', 'Index',
+    r'/page/([0-9]+)', 'PagedIndex',
     r'/(external/[A-Za-z0-9_./-]+)', 'Fetch',
     r'/(static/[A-Za-z0-9_./-]+)', 'Fetch',
     r'/(favicon.ico)', 'Fetch',
@@ -466,6 +467,75 @@ class IndexGenerator(WebGenerator):
                 self.print_save_button(),
                 self.print_add_root_link(),
                 self.print_main_index_page(),
+                self.print_additional_footer({}),
+                self.print_js_links())
+
+
+class PagedIndexGenerator(WebGenerator):
+
+    """Generator that generates an index page which contains a given
+    page of all posts of all heaps."""
+
+    def __init__(self, postdb):
+        """Constructor.
+
+        **Argument:**
+
+        - `postdb` (|PostDB|)
+        """
+
+        WebGenerator.__init__(self, postdb)
+        PagedIndexGenerator.init(self)
+
+    def init(self):
+        # Argument count differs from overridden method # pylint: disable=W0221
+        """Initializator."""
+        pass
+
+    def print_main_index_page(self, page):
+        # Added the `page` argument to the parent's corresponding
+        # method: # pylint: disable=W0221
+        """Prints the given page of the main index.
+
+        **Returns:** |HtmlText|
+        """
+
+        page = int(page)
+        if page == 0:
+            page = 1
+
+        roots_per_page = 10
+        range_begin = (page - 1) * roots_per_page
+        range_end = range_begin + roots_per_page
+        normal_postitems = self.walk_thread(None,
+                                            range_begin=range_begin,
+                                            range_end=range_end)
+        if self._postdb.has_cycle():
+            cycle_postitems = self._postdb.walk_cycles()
+            return (
+                self.section(
+                    '0', 'Posts in cycles',
+                    self.print_postitems(cycle_postitems),
+                    flat=True),
+                self.section(
+                    '1', 'Other posts',
+                    self.print_postitems(normal_postitems)))
+        else:
+            return self.print_postitems(normal_postitems)
+
+    def print_main(self, page):
+        """Prints the main part of the page.
+
+        **Argument:**
+
+        - `page` (int)
+
+        **Returns:** |HtmlText|
+        """
+
+        return (self.print_searchbar(),
+                self.print_additional_header({}),
+                self.print_main_index_page(page),
                 self.print_additional_footer({}),
                 self.print_js_links())
 
@@ -906,7 +976,11 @@ class HkPageServer(WebpyServer):
 
 class Index(HkPageServer):
 
-    """Serves the index page that shows all posts.
+    """Serves an index page that shows all posts.
+
+    This index server displays all posts on every heap on a single large page.
+    This will become hard to manage once the combined size of all heaps exceeds
+    several hundred posts.
 
     Served URL: ``/``
     """
@@ -923,6 +997,29 @@ class Index(HkPageServer):
 
         generator = IndexGenerator(self._postdb)
         content = generator.print_main()
+        return self.serve_html(content, generator)
+
+
+class PagedIndex(HkPageServer):
+
+    """Serves an index page that shows one page of the list of all
+    posts at a time.
+
+    Served URL: ``/page/<number>``
+    """
+
+    def __init__(self):
+        """Constructor."""
+        HkPageServer.__init__(self)
+
+    def GET(self, page):
+        """Serves a HTTP GET request.
+
+        **Returns:** str
+        """
+
+        generator = PagedIndexGenerator(self._postdb)
+        content = generator.print_main(page)
         return self.serve_html(content, generator)
 
 

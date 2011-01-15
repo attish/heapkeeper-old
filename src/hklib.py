@@ -2200,7 +2200,8 @@ class PostDB(object):
             for post2 in self.iter_thread(self.post(ch_post_id), threadstruct):
                 yield post2
 
-    def walk_thread(self, root, threadstruct=None, yield_inner=False):
+    def walk_thread(self, root, threadstruct=None, yield_inner=False,
+                    range_begin=None, range_end=None):
         """Walks a thread and yields its posts.
 
         `walk_thread` walks the thread indicated by `root` with deep walk and
@@ -2225,6 +2226,9 @@ class PostDB(object):
         - `threadstruct` (|ThreadStruct| | ``None``) -- The thread structure to
           be used. If ``None``, the thread structure of the post database will
           be used. (Note: that is usually what we want.)
+        - `range_begin` (int) -- Number of first root to include.
+        - `range_end` (int) -- Number of last root to include. If None,
+          all roots are included.
 
         **Returns:** iterable(|PostItem|)
 
@@ -2270,6 +2274,8 @@ class PostDB(object):
         if root is None:
             roots = [ PostItem(pos='begin', post=root, level=0)
                       for root in self.children(None, threadstruct) ]
+            if range_end is not None:
+                roots = roots[range_begin:range_end]
             stack = list(reversed(roots))
         else:
             stack = [ PostItem(pos='begin', post=root, level=0) ]
