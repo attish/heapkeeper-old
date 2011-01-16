@@ -523,6 +523,40 @@ class PagedIndexGenerator(WebGenerator):
         else:
             return self.print_postitems(normal_postitems)
 
+    def print_pager(self, page):
+        currpage = int(page)
+        if currpage == 0:
+            currpage = 1
+
+        pagecount = len(hkshell.postdb().roots()) / 10 + 1
+
+        pagenumber = '<p>%d/%d</p>' % (currpage, pagecount)
+
+        firstlink = "<a href='/page/1'>First page</a>"
+        if currpage > 1:
+            prevlink = "<a href='/page/%d'>Previous page</a>" % (currpage - 1)
+        else:
+            prevlink = ''
+        if currpage < pagecount:
+            nextlink = "<a href='/page/%d'>Next page</a>" % (currpage + 1)
+        else:
+            nextlink = ''
+        nextlink = "<a href='/page/%d'>Next page</a>" % (currpage + 1) \
+                   if currpage < pagecount else ''
+        prevlink = "<a href='/page/%d'>Previous page</a>" % (currpage - 1) \
+                   if currpage > 1 else ''
+        lastlink = "<a href='/page/%d'>Last page</a>" % pagecount
+
+        return (
+                    "<table class='pager'><tr>",
+                    "<td>", firstlink, "</td>",
+                    "<td>", prevlink, "</td>",
+                    "<td>", pagenumber, "</td>",
+                    "<td>", nextlink, "</td>",
+                    "<td>", lastlink, "</td>",
+                    "</tr></table>"
+               )
+
     def print_main(self, page):
         """Prints the main part of the page.
 
@@ -535,7 +569,9 @@ class PagedIndexGenerator(WebGenerator):
 
         return (self.print_searchbar(),
                 self.print_additional_header({}),
+                self.print_pager(page),
                 self.print_main_index_page(page),
+                self.print_pager(page),
                 self.print_additional_footer({}),
                 self.print_js_links())
 
