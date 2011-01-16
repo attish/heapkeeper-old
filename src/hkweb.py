@@ -71,6 +71,7 @@ urls = [
     r'/posts/(.*)', 'Post',
     r'/raw-post-bodies/(.*)', 'RawPostBody',
     r'/raw-post-text/(.*)', 'RawPostText',
+    r'/save.*', 'Save',
     r'/set-post-body', 'SetPostBody',
     r'/get-post-body', 'GetPostBody',
     r'/set-raw-post', 'SetRawPost',
@@ -408,6 +409,21 @@ class IndexGenerator(WebGenerator):
         """Initializator."""
         pass
 
+    def print_save_button(self):
+        """Prints a link to save changes."""
+
+        add_root_link = \
+            [
+                "<div class='global-buttons'>",
+                "   <span class='button global-button'>",
+                "       <a href='javascript:saveHeaps()'>",
+                "           Save changes to disk",
+                "       </a>",
+                "   </span>",
+                "</div>"
+            ]
+        return "\n".join(add_root_link)
+
     def print_main(self):
         """Prints the main part of the page.
 
@@ -416,6 +432,7 @@ class IndexGenerator(WebGenerator):
 
         return (self.print_searchbar(),
                 self.print_additional_header({}),
+                self.print_save_button(),
                 self.print_main_index_page(),
                 self.print_additional_footer({}),
                 self.print_js_links())
@@ -1169,6 +1186,32 @@ class SetPostBody(AjaxServer):
             new_post_summary = hkutils.textstruct_to_str(new_post_summary)
             return { 'new_post_summary': new_post_summary,
                      'new_post_id': post.post_id_str()}
+
+
+class Save(AjaxServer):
+    """Performs a save operation.
+
+    Served URL: ``/save``
+    """
+
+    def __init__(self):
+        """Constructor."""
+        AjaxServer.__init__(self)
+
+    def execute(self, args):
+        """Saves changes.
+
+        **Returns:** {'error': str}
+        """
+
+        # Errors here are very probably filesystem errors.
+        try:
+            hkshell.s()
+        except hkutils.HkException, e:
+            return {'error': str(e)}
+
+        # All OK -- return empty structure.
+        return {}
 
 
 class GetPostBody(AjaxServer):

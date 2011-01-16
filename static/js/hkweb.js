@@ -654,6 +654,21 @@ function cancelPostNew(postId, count) {
     postBox.remove();
 }
 
+function saveHeaps() {
+    // Equivalent to hkshell's `s()`.
+    ajaxQuery(
+        "/save",
+        {},
+        function(result) {
+            if (result.error) {
+                window.alert('Error occured:\n' + result.error);
+                return;
+            }
+            window.alert('Save successful.');
+        }
+    );
+}
+
 function confirmExit() {
     // Asks confirmation before leaving the page if there are any post being
     // edited.
