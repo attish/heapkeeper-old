@@ -66,7 +66,8 @@ import hkshell
 
 # Stores which URL is served by which server
 urls = [
-    r'/', 'Index',
+    r'/', 'PagedIndex',
+    r'/all', 'Index',
     r'/page/([0-9]+)', 'PagedIndex',
     r'/(external/[A-Za-z0-9_./-]+)', 'Fetch',
     r'/(static/[A-Za-z0-9_./-]+)', 'Fetch',
@@ -1048,7 +1049,7 @@ class PagedIndex(HkPageServer):
         """Constructor."""
         HkPageServer.__init__(self)
 
-    def GET(self, page):
+    def GET(self, page=1):
         """Serves a HTTP GET request.
 
         **Returns:** str

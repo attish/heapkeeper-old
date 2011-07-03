@@ -261,7 +261,7 @@ class Test__servers(unittest.TestCase, test_hklib.PostDBHandler):
         gen = hkweb.IndexGenerator(self._postdb)
 
         self.assertTextStructsAreEqual(
-            hkshell.options.web_server.webapp.request('/').data,
+            hkshell.options.web_server.webapp.request('/all').data,
             gen.print_html_page(gen.print_main()))
 
     def test_Post(self):
