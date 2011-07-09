@@ -26,13 +26,10 @@ The plugin can be activated in the following way::
 
     >>> import hkp_reply_link
     >>> hkp_reply_link.start()
-
 """
 
 
 import hkgen
-import hkshell
-import hkutils
 import hkweb
 
 
@@ -57,7 +54,10 @@ def start(reply_email='set_this@your.heap.net'):
         mailto_link = (
                 'mailto:' +
                 reply_email +
-                '?subject=' + postitem.post.subject() +
+                '?subject=' +
+                ''.join(['[%s]' % tag for tag in postitem.post.tags()]) +
+                (' ' if postitem.post.tags() else '') +
+                postitem.post.subject() +
                 '&In-Reply-To=' + postitem.post.messid()
             )
 
