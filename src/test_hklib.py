@@ -216,9 +216,9 @@ class PostDBHandler(object):
         # 3 <- 5 <- 6 <- 7
         #  \        ^
         #   -------/
-        self.add_post(5, 3),
-        self.add_post(6, 5),
-        self.add_post(7, 6),
+        self.add_post(5, 3)
+        self.add_post(6, 5)
+        self.add_post(7, 6)
         self.p(3).set_parent(7)
 
     def pop_log(self):
