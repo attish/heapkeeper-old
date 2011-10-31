@@ -16,6 +16,7 @@
 # Heapkeeper.  If not, see <http://www.gnu.org/licenses/>.
 
 # Copyright (C) 2010 Csaba Hoch
+# Copyright (C) 2011 Attila Nagy
 
 """Tests the hkweb module.
 
@@ -28,10 +29,82 @@ Usage:
 from __future__ import with_statement
 
 import unittest
+import web as webpy
 
 import hkutils
 import hkweb
 import test_hkgen
+
+
+class Test_UtilityFunctions(unittest.TestCase):
+
+    """Tests utility functions of |hkweb|."""
+
+    def setUp(self):
+        """Build a mock web.py that has only a `webpy.input().items` that
+        returns a preset input (from `self._input`)."""
+
+        class Mocker():
+            # Class has no __init__ method # pylint: disable=W0232
+            pass
+
+        def mock_input():
+            input = Mocker()
+            input.items = lambda: self._input
+            return input
+
+        self._old_webpy = webpy
+        mock_webpy = Mocker()
+        mock_webpy.input = mock_input
+        hkweb.webpy = mock_webpy
+
+    def tearDown(self):
+        """Restore original web.py."""
+
+        hkweb.webpy = self._old_webpy
+
+    def test_get_web_args(self):
+        """Tests :func:`hkweb.get_web_args`"""
+
+        self._input = \
+            [
+                ('post_id', u'\x00"h/12"'),
+                ('new_body_text', u'\x00"xyz"'),
+                ('new', u'\x001')
+            ]
+        self.assertEqual(
+                hkweb.get_web_args(),
+                {'post_id': 'h/12', 'new_body_text': 'xyz', 'new': 1}
+            )
+
+        self._input = \
+            [
+                ('post_id', u'h/12'),
+                ('new_body_text', u'xyz'),
+                ('new', u'\x001')
+            ]
+        self.assertEqual(
+                hkweb.get_web_args(),
+                {'post_id': 'h/12', 'new_body_text': 'xyz', 'new': 1}
+            )
+
+        self._input = []
+        self.assertEqual(hkweb.get_web_args(), {})
+
+        self._input = [('x', u'')]
+        self.assertEqual(hkweb.get_web_args(), {'x': ''})
+
+        self._input = [('x', u'\00')]
+        self.assertEqual(hkweb.get_web_args(), {'x': '\00'})
+
+        self._input = [('x', u'\00042')]
+        self.assertEqual(hkweb.get_web_args(), {'x': 42})
+
+        self._input = [('x', u'\00[1,2]')]
+        self.assertEqual(hkweb.get_web_args(), {'x': [1, 2]})
+
+        self._input = [('x', u'\00[1,2')]
+        self.assertRaises(hkutils.HkException, lambda: hkweb.get_web_args())
 
 
 class Test_WebGenerator(test_hkgen.Test_BaseGenerator):
