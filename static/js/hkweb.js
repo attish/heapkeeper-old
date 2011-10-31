@@ -52,7 +52,10 @@ function stringify_object(obj) {
     //
     // Returns: str
 
-    return '\x00' + JSON.stringify(obj);
+    if (typeof obj == 'string')
+        return obj;}
+    else
+        return '\x00' + JSON.stringify(obj);
 }
 
 
