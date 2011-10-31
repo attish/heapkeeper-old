@@ -28,6 +28,7 @@ Usage:
 
 from __future__ import with_statement
 
+import datetime
 import unittest
 import web as webpy
 
@@ -58,10 +59,56 @@ class Test_UtilityFunctions(unittest.TestCase):
         mock_webpy.input = mock_input
         hkweb.webpy = mock_webpy
 
+        self._log = []
+        self._old_log_fun = hkutils.log_fun
+        def log_fun(*args):
+            self._log.append(''.join(args))
+        hkutils.set_log(log_fun)
+
+        # Mock `datetime.datetime.now`
+        class DatetimeMocker():
+            """DatetimeMocker is a class that mocks the `datetime` module.
+
+            It redirects all accesses to the original module, except for two:
+            it redirects acesses to `datetime` to itself, and when accessing
+            `now`, it returns a fixed datetime object."""
+
+            def __init__(self, old_datetime):
+                self._inner = self
+                self._old_datetime = old_datetime
+                self._fixed = old_datetime.datetime(2011, 1, 1, 12, 0)
+
+            def __getattr__(self, attr):
+                if attr == 'datetime':
+                    return self._inner
+                if attr == 'now':
+                    return lambda: self._fixed
+                return getattr(self._old_datetime, attr)
+
+        self._old_datetime = hkweb.datetime
+        hkweb.datetime = DatetimeMocker(self._old_datetime)
+
     def tearDown(self):
         """Restore original web.py."""
 
         hkweb.webpy = self._old_webpy
+
+        # Setting the original logging function back
+        self.assertEqual(self._log, [])
+        hkutils.set_log(self._old_log_fun)
+
+        # Restore `datetime.datetime.now`
+        hkweb.datetime = self._old_datetime
+
+    def pop_log(self):
+        """Set the log to empty but return the previous logs.
+
+        **Returns:** str
+        """
+
+        log = self._log
+        self._log = []
+        return '\n'.join(log)
 
     def test_get_web_args(self):
         """Tests :func:`hkweb.get_web_args`"""
@@ -105,6 +152,46 @@ class Test_UtilityFunctions(unittest.TestCase):
 
         self._input = [('x', u'\00[1,2')]
         self.assertRaises(hkutils.HkException, lambda: hkweb.get_web_args())
+
+    def test_last(self):
+        """Tests the `hkweb.last()` function."""
+
+        hkweb.last_access = {}
+
+        self.assertEqual(hkweb.last(), None)
+        self.assertEqual(self.pop_log(), 'Access list is empty.')
+
+        hkweb.last_access = {'A': datetime.datetime(2011, 1, 1, 11, 59)}
+        hkweb.last()
+        self.assertEqual(self.pop_log(), 'Last access was 1 minute ago.')
+
+        hkweb.last_access = {'A': datetime.datetime(2011, 1, 1, 11, 58)}
+        hkweb.last()
+        self.assertEqual(self.pop_log(), 'Last access was 2 minutes ago.')
+
+        hkweb.last_access = {'A': datetime.datetime(2011, 1, 1, 11, 0)}
+        hkweb.last()
+        self.assertEqual(self.pop_log(), 'Last access was 1 hour ago.')
+
+        hkweb.last_access = {'A': datetime.datetime(2011, 1, 1, 10, 0)}
+        hkweb.last()
+        self.assertEqual(self.pop_log(), 'Last access was 2 hours ago.')
+
+        hkweb.last_access = {'A': datetime.datetime(2010, 12, 31, 12, 0)}
+        hkweb.last()
+        self.assertEqual(self.pop_log(), 'Last access was 1 day ago.')
+
+        hkweb.last_access = {'A': datetime.datetime(2010, 12, 30, 12, 0)}
+        hkweb.last()
+        self.assertEqual(self.pop_log(), 'Last access was 2 days ago.')
+
+        hkweb.last_access = {'A': datetime.datetime(1970, 12, 30, 12, 0)}
+        hkweb.last()
+        self.assertEqual(self.pop_log(), 'Last access was 14612 days ago.')
+
+        hkweb.last_access = {'A': datetime.datetime(2011, 1, 2, 12, 0)}
+        hkweb.last()
+        self.assertEqual(self.pop_log(), 'Last access was 0 seconds ago.')
 
 
 class Test_WebGenerator(test_hkgen.Test_BaseGenerator):
