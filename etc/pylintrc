@@ -59,6 +59,8 @@ disable:
 # *Global variable %r undefined at the module level* Used when a variable is
 # defined through the "global" statement but the variable is not defined in the
 # module scope.
+    W0404,
+# *Reimport '%s' This seems to generate false positives, see http://www.logilab.org/ticket/22277
     W0601,
 # *Using the global statement*
     W0603,
