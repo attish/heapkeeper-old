@@ -80,6 +80,8 @@ class EmailDownloader(object):
         if server is None:
             server = self._config['server']
 
+        oauth_token = server.get('oauth_token')
+
         host = server['host']
         port = server['port']
         username = server['username']
@@ -95,9 +97,16 @@ class EmailDownloader(object):
         hkutils.log('Connecting...')
         if imaps:
             self._server = imaplib.IMAP4_SSL(host, port)
+            if oauth_token:
+                hkutils.log('Using OAUTH2...')
+                # use this to debug OAUTH2 based authentication: self._server.debug = 4
+                auth_string = 'user=%s\1auth=Bearer %s\1\1' % (username, oauth_token)
+                self._server.authenticate('XOAUTH2', lambda x: auth_string)
+            else:
+                self._server.login(username, password)
         else:
             self._server = imaplib.IMAP4(host, port)
-        self._server.login(username, password)
+            self._server.login(username, password)
         hkutils.log('Connected')
 
     def close(self):
