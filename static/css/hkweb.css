@@ -19,8 +19,8 @@
 
 .global-buttons
 {
-    display: block;
-    margin: 1em;
+    display: inline;
+    margin: 1em 0 1em 1em;
 }
 
 .post-body-container
