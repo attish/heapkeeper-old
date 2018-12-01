@@ -26,6 +26,9 @@ The plugin can be activated in the following way::
 
     >>> import hkp_reply_link
     >>> hkp_reply_link.start()
+
+TODO: In the future, this plugin may be merged into the main code, and
+configured on a per-heap basis via hk.cfg options.
 """
 
 
